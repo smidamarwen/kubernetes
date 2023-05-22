@@ -1,5 +1,5 @@
 #!/bin/bash
-# script that runs 
+# script that runs
 # https://kubernetes.io/docs/setup/production-environment/container-runtime
 
 # changes March 14 2023: introduced $PLATFORM to have this work on amd64 as well as arm64
@@ -59,8 +59,9 @@ version = 2
 	TOML
 
 	# Restart containerd
-	sudo systemctl restart containerd	
-elif [ $MYOS = "CentOS" ]; then
+	sudo systemctl restart containerd
+
+elif [ $MYOS = "CentOS" ] || [ $MYOS = "RedHatEnterprise" ]; then
 	### setting up container runtime prereq
 	echo "overlay" | sudo tee /etc/modules-load.d/containerd.conf
 	echo "br_netfilter" | sudo tee -a /etc/modules-load.d/containerd.conf
@@ -95,5 +96,5 @@ version = 2
 	TOML
 
 	# Restart containerd
-	sudo systemctl restart containerd	
+	sudo systemctl restart containerd
 fi

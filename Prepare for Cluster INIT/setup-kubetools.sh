@@ -2,7 +2,7 @@
 # kubeadm installation instructions as on
 # https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
 
-# this script supports Ubuntu 20.04 LTS and CentOS 7/8
+# this script supports Ubuntu 20.04 LTS, CentOS 7/8, and RHEL 9.2
 # run this script with sudo
 
 if ! [ $USER = root ]
@@ -35,9 +35,9 @@ EOF
 
 	sed -i 's/\/swap/#\/swap/' /etc/fstab
 
-elif [ $MYOS = "CentOS" ]
+elif [ $MYOS = "CentOS" ] || [ $MYOS = "RedHatEnterprise" ]
 then
-	echo RUNNING CENTOS CONFIG
+	echo RUNNING CENTOS/RHEL CONFIG
 	cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
 	br_netfilter
 EOF
