@@ -11,8 +11,7 @@ OSVERSION=$(hostnamectl | awk '/Operating/ { print $4 }')
 [ $(arch) = aarch64 ] && PLATFORM=arm64
 [ $(arch) = x86_64 ] && PLATFORM=amd64
 
-if [ $MYOS = "Ubuntu" ]
-then
+if [ $MYOS = "Ubuntu" ]; then
 	### setting up container runtime prereq
 	cat <<- EOF | sudo tee /etc/modules-load.d/containerd.conf
 	overlay
@@ -35,7 +34,7 @@ then
 	# (Install containerd)
 
 	sudo apt-get update && sudo apt-get install -y containerd
-	# hopefully temporary bugfix as the containerd version provided in Ubu repo is tool old
+	# hopefully temporary bugfix as the containerd version provided in Ubu repo is too old
 	# added Jan 26th 2023
 	# this needs to be updated when a recent enough containerd version will be in Ubuntu repos
 	sudo systemctl stop containerd
@@ -61,5 +60,40 @@ version = 2
 
 	# Restart containerd
 	sudo systemctl restart containerd	
-fi
+elif [ $MYOS = "CentOS" ]; then
+	### setting up container runtime prereq
+	echo "overlay" | sudo tee /etc/modules-load.d/containerd.conf
+	echo "br_netfilter" | sudo tee -a /etc/modules-load.d/containerd.conf
 
+	sudo modprobe overlay
+	sudo modprobe br_netfilter
+
+	# Setup required sysctl params, these persist across reboots.
+	echo "net.bridge.bridge-nf-call-iptables = 1" | sudo tee /etc/sysctl.d/99-kubernetes-cri.conf
+	echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.d/99-kubernetes-cri.conf
+	echo "net.bridge.bridge-nf-call-ip6tables = 1" | sudo tee -a /etc/sysctl.d/99-kubernetes-cri.conf
+
+	# Apply sysctl params without reboot
+	sudo sysctl --system
+
+	# (Install containerd)
+	sudo yum install -y containerd
+
+	# Configure containerd
+	sudo mkdir -p /etc/containerd
+	cat <<- TOML | sudo tee /etc/containerd/config.toml
+version = 2
+[plugins]
+  [plugins."io.containerd.grpc.v1.cri"]
+    [plugins."io.containerd.grpc.v1.cri".containerd]
+      discard_unpacked_layers = true
+      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
+        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+          runtime_type = "io.containerd.runc.v2"
+          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+            SystemdCgroup = true
+	TOML
+
+	# Restart containerd
+	sudo systemctl restart containerd	
+fi
